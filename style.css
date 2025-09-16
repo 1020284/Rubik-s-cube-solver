@@ -1,0 +1,26 @@
+body {
+  font-family: sans-serif;
+  text-align: center;
+  background: #f0f0f0;
+}
+
+#cube-container {
+  display: grid;
+  grid-template-columns: repeat(3, 60px);
+  grid-template-rows: repeat(3, 60px);
+  gap: 4px;
+  margin: 40px auto;
+  width: 180px;
+}
+
+.square {
+  width: 60px;
+  height: 60px;
+  background-color: white;
+  border: 1px solid #333;
+  cursor: pointer;
+}
+
+.controls {
+  margin-top: 20px;
+}
