@@ -2,17 +2,133 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Rubik's Cube Solver</title>
-  <link rel="stylesheet" href="style.css" />
+  <title>Dot Survival Game</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background: #111;
+    }
+    canvas {
+      display: block;
+    }
+    #ui {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      color: white;
+      font-family: sans-serif;
+      z-index: 10;
+    }
+    #leaderboard {
+      margin-top: 10px;
+    }
+  </style>
 </head>
 <body>
-  <h1>Rubik's Cube Simulator</h1>
-  <div id="cube-container"></div>
-  <div class="controls">
-    <button onclick="scrambleCube()">Scramble</button>
-    <button onclick="solveCube()">Solve</button>
+  <div id="ui">
+    <div id="score">Score: 0</div>
+    <div id="leaderboard">
+      <strong>Leaderboard:</strong>
+      <ol id="scores"></ol>
+    </div>
   </div>
-  <script src="cube.js"></script>
-  <script src="solver.js"></script>
-</body>
-</html>
+  <canvas id="gameCanvas"></canvas>
+
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    let score = 0;
+    let alive = true;
+    const scoreDisplay = document.getElementById('score');
+    const leaderboardList = document.getElementById('scores');
+
+    const player = {
+      x: canvas.width / 2,
+      y: canvas.height / 2,
+      radius: 20,
+      color: 'cyan'
+    };
+
+    const dots = [];
+
+    function spawnDot() {
+      const radius = 5 + Math.random() * 30;
+      const dot = {
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        radius,
+        color: `hsl(${Math.random() * 360}, 70%, 60%)`,
+        dx: (Math.random() - 0.5) * 2,
+        dy: (Math.random() - 0.5) * 2
+      };
+      dots.push(dot);
+    }
+
+    for (let i = 0; i < 50; i++) spawnDot();
+
+    canvas.addEventListener('mousemove', (e) => {
+      player.x = e.clientX;
+      player.y = e.clientY;
+    });
+
+    function drawCircle(x, y, radius, color) {
+      ctx.beginPath();
+      ctx.arc(x, y, radius, 0, Math.PI * 2);
+      ctx.fillStyle = color;
+      ctx.fill();
+    }
+
+    function detectCollision(dot) {
+      const dx = player.x - dot.x;
+      const dy = player.y - dot.y;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      return distance < player.radius + dot.radius;
+    }
+
+    function updateDots() {
+      for (let i = dots.length - 1; i >= 0; i--) {
+        const dot = dots[i];
+        dot.x += dot.dx;
+        dot.y += dot.dy;
+
+        // Bounce off walls
+        if (dot.x < dot.radius || dot.x > canvas.width - dot.radius) dot.dx *= -1;
+        if (dot.y < dot.radius || dot.y > canvas.height - dot.radius) dot.dy *= -1;
+
+        if (detectCollision(dot)) {
+          if (dot.radius < player.radius) {
+            player.radius += dot.radius * 0.2;
+            score += Math.floor(dot.radius);
+            scoreDisplay.textContent = `Score: ${score}`;
+            dots.splice(i, 1);
+            spawnDot();
+          } else {
+            alive = false;
+            endGame();
+          }
+        }
+      }
+    }
+
+    function endGame() {
+      saveScore(score);
+      alert("💀 You were eaten by a bigger dot!\nFinal Score: " + score);
+      location.reload();
+    }
+
+    function saveScore(newScore) {
+      let scores = JSON.parse(localStorage.getItem("dotScores")) || [];
+      scores.push(newScore);
+      scores.sort((a, b) => b - a);
+      scores = scores.slice(0, 5); // Top 5
+      localStorage.setItem("dotScores", JSON.stringify(scores));
+      renderLeaderboard(scores);
+    }
+
+    function renderLeaderboard(scores) {
+      leaderboardList
